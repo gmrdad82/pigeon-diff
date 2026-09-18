@@ -23,8 +23,13 @@ It is read by strangers, and its laws follow from that.
 ```
 cargo fmt --check
 cargo check --target wasm32-wasip2
+cargo clippy --target wasm32-wasip2 -- -D warnings
+cargo test
 git diff --check
 ```
+
+The wasm target is the plugin; `cargo test` runs the parser and the sheet
+builder natively (`src/guest.rs` is `wasm32` only).
 
 plus the two grep lines of `validate.yml`, run locally, both silent.
 

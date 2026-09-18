@@ -1,0 +1,45 @@
+// The `pito:pigeon` product world: the desk's door for a sandboxed plugin, one function
+// per `pigeon_*` MCP tool, JSON in and JSON out exactly as the MCP door speaks them.
+// A guest links it beside `pito:host/plugin` (plughost's common world); the host side
+// lives in `src/plugins/world.rs`, which is the one implementation of this contract.
+package pito:pigeon@0.1.0;
+
+// Every function takes the tool's JSON arguments object and answers the tool's JSON
+// result (`run-diff` alone takes a key and answers text); an error string is the
+// store's or the guard's refusal (`refused: core:write not granted`). Reads need the
+// `core:read` grant, writes `core:write`.
+interface door {
+    // Reads (core:read)
+    projects: func(arguments: string) -> result<string, string>;
+    // `list` is a WIT keyword; `%` escapes it and the binding is still `list`.
+    %list: func(arguments: string) -> result<string, string>;
+    search: func(arguments: string) -> result<string, string>;
+    history: func(arguments: string) -> result<string, string>;
+    updates: func(arguments: string) -> result<string, string>;
+    agents: func(arguments: string) -> result<string, string>;
+    inbox: func(arguments: string) -> result<string, string>;
+    ai-rounds: func(arguments: string) -> result<string, string>;
+    runs: func(arguments: string) -> result<string, string>;
+    // A run's diff: the Task's key in, one unified text out — what the latest
+    // run with a git workspace committed on its branch since the Project's checkout,
+    // then what sits uncommitted in the worktree; sections open with `# `; over 2 MiB
+    // it is cut and its last line says so. A Task without such a run answers the
+    // error "no run with a workspace".
+    run-diff: func(key: string) -> result<string, string>;
+    // Writes (core:write); the actor is the plugin itself, `plugin:<owner>/<repo>`
+    project-agents: func(arguments: string) -> result<string, string>;
+    add: func(arguments: string) -> result<string, string>;
+    move: func(arguments: string) -> result<string, string>;
+    resolve: func(arguments: string) -> result<string, string>;
+    edit: func(arguments: string) -> result<string, string>;
+    update: func(arguments: string) -> result<string, string>;
+    update-edit: func(arguments: string) -> result<string, string>;
+    update-delete: func(arguments: string) -> result<string, string>;
+    delete: func(arguments: string) -> result<string, string>;
+    accept: func(arguments: string) -> result<string, string>;
+}
+
+// The product world a Pigeon plugin adds to plughost's `plugin` world.
+world pigeon {
+    import door;
+}

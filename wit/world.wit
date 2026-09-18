@@ -1,0 +1,9 @@
+// The Diff plugin's world: plughost's common `plugin` world plus the `pito:pigeon` door
+// (its `run-diff` is the one function this guest calls). The two packages under
+// `deps/` are byte-for-byte copies of the host's, never edited here.
+package pigeon:diff@0.1.0;
+
+world diff {
+    include pito:host/plugin@0.1.0;
+    import pito:pigeon/door@0.1.0;
+}

@@ -1,0 +1,10 @@
+# This manifest declares the Diff plugin to the Done desk.
+id = "gmrdad82/pigeon-diff"
+name = "Diff"
+version = "0.1.0"
+kind = "plugin"
+hosts = ["pigeon"]
+api = "0.1"
+capabilities = ["core:read"]
+slots = ["command", "sheet"]
+summary = "A run's changes in its workspace, shown as a diff in a sheet of its own"
