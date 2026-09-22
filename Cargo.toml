@@ -1,5 +1,3 @@
-# This manifest builds the Diff plugin as a WebAssembly component guest; the parser
-# and the sheet builder are plain Rust, so `cargo test` runs them on the host.
 [package]
 name = "pigeon-diff"
 version = "0.1.0"

@@ -1,4 +1,3 @@
-# This manifest declares the Diff plugin to the Done desk.
 id = "gmrdad82/pigeon-diff"
 name = "Diff"
 version = "0.1.0"

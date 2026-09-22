@@ -1,61 +1,41 @@
-// The unified-diff parser: the text the desk's `run-diff` answers in, a tree of
-// sections, files and hunks out. Pure Rust, no crate. It reads what git writes —
-// `diff --git` headers, `---`/`+++`, `@@` hunks, `+`/`-`/` ` lines, `\ No newline at
-// end of file`, binary notices, a `--stat` block — plus the host's two additions: a
-// section line opening with `# ` and a cut line opening with `… `. Anything else
-// outside a hunk is kept as a note on its file, never dropped and never a panic.
-
-/// The whole answer.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Diff {
     pub sections: Vec<Section>,
-    /// The host's cut line, when the diff was longer than it sends.
     pub cut: Option<String>,
 }
 
-/// One part of the answer under a `# ` line (the committed part, the uncommitted one).
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Section {
     pub title: String,
-    /// The `--stat` block's lines, as git prints them, trimmed.
     pub stat: Vec<String>,
     pub files: Vec<File>,
 }
 
-/// One `diff --git` entry.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct File {
-    /// The path as the sheet names it: the new side, or the old one for a deletion.
     pub path: String,
     pub old: Option<String>,
     pub new: Option<String>,
-    /// Header lines between `diff --git` and the first hunk (`index`, modes, renames),
-    /// and a binary notice.
     pub notes: Vec<String>,
     pub binary: bool,
     pub hunks: Vec<Hunk>,
 }
 
-/// One `@@` block.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Hunk {
-    /// The `@@ -a,b +c,d @@ …` line itself.
     pub header: String,
     pub lines: Vec<Line>,
 }
 
-/// One line of a hunk, its sign stripped.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Line {
     Context(String),
     Added(String),
     Removed(String),
-    /// `\ No newline at end of file`.
     NoNewline,
 }
 
 impl Diff {
-    /// Files, added lines and removed lines over every section.
     pub fn totals(&self) -> (usize, usize, usize) {
         let mut files = 0;
         let mut added = 0;
@@ -71,7 +51,6 @@ impl Diff {
 }
 
 impl File {
-    /// Added and removed lines over the file's hunks.
     pub fn counts(&self) -> (usize, usize) {
         let mut added = 0;
         let mut removed = 0;
@@ -86,8 +65,6 @@ impl File {
     }
 }
 
-/// Parses the host's text. Never fails: an unexpected line lands as a note or a stat
-/// line, so a cut or a construct git adds later still draws.
 pub fn parse(text: &str) -> Diff {
     let mut diff = Diff::default();
     let mut in_hunk = false;
@@ -101,8 +78,6 @@ pub fn parse(text: &str) -> Diff {
                 Some(b'+') => hunk.lines.push(Line::Added(line[1..].to_string())),
                 Some(b'-') => hunk.lines.push(Line::Removed(line[1..].to_string())),
                 Some(b'\\') => hunk.lines.push(Line::NoNewline),
-                // git writes an empty context line as one space; a bare empty line
-                // is the same line with its space lost.
                 None => hunk.lines.push(Line::Context(String::new())),
                 _ => in_hunk = false,
             }
@@ -157,8 +132,6 @@ pub fn parse(text: &str) -> Diff {
     diff
 }
 
-// `a/<old> b/<new>` off a `diff --git` line; a path with a space is quoted by git and
-// resolved by the `---`/`+++` lines that follow, so this split is a first reading.
 fn split_git_header(rest: &str) -> (Option<String>, Option<String>) {
     let Some(at) = rest.find(" b/") else {
         return (None, None);
@@ -168,8 +141,6 @@ fn split_git_header(rest: &str) -> (Option<String>, Option<String>) {
     (old, new)
 }
 
-// A `---`/`+++` path: `/dev/null` is no side; the prefix goes; a tab and what follows
-// it (git's timestamps, when configured) go too.
 fn strip_side(side: &str, prefix: &str) -> Option<String> {
     let side = side.split('\t').next().unwrap_or(side);
     if side == "/dev/null" {

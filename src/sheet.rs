@@ -1,64 +1,40 @@
-// The sheet's lines: a parsed diff laid out top to bottom — the heading, the totals,
-// each section's title, each file's header row, then its hunks line by line — cut to
-// what one plugin tree may carry. The host draws a tree of at most 5,000 nodes and
-// 65,536 text bytes; this file keeps under both so the sheet always draws, and its
-// last line says how much stayed out. The glue in `guest.rs` turns a `Line` into the
-// tree's node; nothing here knows the tree.
 use crate::diff::{Diff, Line as Hunk};
 
-/// Lines kept under the host's 5,000-node bound, the root column and headroom aside.
 pub const MAX_LINES: usize = 4_000;
-/// Text bytes kept under the host's 65,536-byte bound, with headroom for the cut line.
 pub const MAX_TEXT: usize = 60_000;
 
-/// What a sheet line is, so the glue picks its face and its tone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
-    /// The Task and the run, bold.
     Heading,
-    /// Files, added and removed over the whole diff, dim.
     Totals,
-    /// A section's title (`Committed on …`, `Not yet committed`), bold.
     Section,
-    /// A file's path with its `+n −m`, monospace, bold.
     File,
-    /// A `@@` line or a file's header note, monospace and dim.
     Meta,
-    /// A context line, monospace.
     Context,
-    /// An added line, monospace with the `ok` tone.
     Added,
-    /// A removed line, monospace with the `danger` tone.
     Removed,
-    /// The host's cut line or the sheet's own, dim.
     Cut,
-    /// The refusal the door answered, in the `danger` tone.
     Error,
 }
 
-/// One line of the sheet.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Line {
     pub kind: Kind,
     pub text: String,
 }
 
-/// The sheet: its lines and what the bound left out.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Sheet {
     pub lines: Vec<Line>,
-    /// Lines the bound dropped.
     pub dropped: usize,
 }
 
 impl Sheet {
-    /// Text bytes over every line.
     pub fn text_bytes(&self) -> usize {
         self.lines.iter().map(|l| l.text.len()).sum()
     }
 }
 
-/// The sheet for a diff: the heading names the Task and its run.
 pub fn build(task: &str, run: &str, diff: &Diff) -> Sheet {
     let mut sheet = Builder::new();
     sheet.push(Kind::Heading, format!("{task} · {run}"));
@@ -107,7 +83,6 @@ pub fn build(task: &str, run: &str, diff: &Diff) -> Sheet {
     sheet.finish()
 }
 
-/// The sheet for a door refusal: the heading, then the error in one line.
 pub fn error(task: &str, run: &str, words: &str) -> Sheet {
     let mut sheet = Builder::new();
     sheet.push(Kind::Heading, format!("{task} · {run}"));
@@ -115,9 +90,6 @@ pub fn error(task: &str, run: &str, words: &str) -> Sheet {
     sheet.finish()
 }
 
-// Pushes lines while they fit; from the first that does not, counts every line after
-// it too, so the sheet is always a prefix of the diff and the count line is exactly
-// what follows it — never a sieve that drops one line out of the middle of a hunk.
 struct Builder {
     sheet: Sheet,
     text: usize,
@@ -250,7 +222,6 @@ index 0000000..3e75765
             sheet.lines.last().unwrap().text,
             format!("… {} more lines than the sheet holds", sheet.dropped)
         );
-        // Long lines hit the byte bound first; the node bound never lets a line through.
         let mut wide =
             String::from("diff --git a/w b/w\n--- /dev/null\n+++ b/w\n@@ -0,0 +1,100 @@\n");
         for _ in 0..100 {
@@ -260,8 +231,6 @@ index 0000000..3e75765
         assert!(sheet.text_bytes() <= MAX_TEXT);
         assert!(sheet.dropped > 0);
         assert!(sheet.lines.len() < 100);
-        // The kept lines are the diff's first ones in order: once a line is dropped,
-        // nothing after it lands, and the count line is exactly what follows.
         let kept = sheet.lines.len() - 1;
         assert_eq!(kept + sheet.dropped, 100 + 4);
         assert!(
@@ -270,9 +239,6 @@ index 0000000..3e75765
                 .skip(4)
                 .all(|l| l.kind == Kind::Added && l.text.len() == 1_001)
         );
-        // A wide line that fills the budget takes nothing after it with it: three
-        // added lines, the first 59,800 bytes, the second 200 — the second does not
-        // fit, so the third is counted with it, never drawn in its place.
         let mut fill =
             String::from("diff --git a/f b/f\n--- /dev/null\n+++ b/f\n@@ -0,0 +1,3 @@\n");
         fill.push_str(&format!(
